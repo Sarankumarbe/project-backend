@@ -9,6 +9,13 @@ const generateToken = (user) => {
   );
 };
 
+const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production', // only HTTPS in prod
+    sameSite: 'Lax', // or 'Strict' for tighter control
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  };
+
 exports.signup = async (req, res) => {
     try {
       const { firstName, lastName, email, password, role } = req.body;
@@ -26,7 +33,10 @@ exports.signup = async (req, res) => {
       await user.save();
   
       const token = generateToken(user);
-      res.status(201).json({
+      res
+      .status(201)
+      .cookie('token', token, cookieOptions)
+      .json({
         user: {
           id: user._id,
           firstName: user.firstName,
@@ -34,8 +44,7 @@ exports.signup = async (req, res) => {
           email: user.email,
           role: user.role,
           status: user.status
-        },
-        token
+        }
       });
     } catch (error) {
       console.error('Signup error:', error);
@@ -58,7 +67,10 @@ exports.login = async (req, res) => {
   
       const token = generateToken(user);
   
-      res.status(200).json({
+      res
+      .status(200)
+      .cookie('token', token, cookieOptions)
+      .json({
         user: {
           id: user._id,
           firstName: user.firstName,
@@ -66,8 +78,7 @@ exports.login = async (req, res) => {
           email: user.email,
           role: user.role,
           status: user.status
-        },
-        token
+        }
       });
     } catch (error) {
       console.error(error);
