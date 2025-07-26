@@ -1,6 +1,6 @@
 // controllers/questionPaperController.js
 const questionPaperHelper = require("../helper/questionPaperHelper");
-const Question = require("../models/question");
+const QuestionPaper = require("../models/questionPaper");
 
 exports.uploadAndParseQuestions = async (req, res) => {
   try {
@@ -30,8 +30,9 @@ exports.uploadAndParseQuestions = async (req, res) => {
 
 exports.saveQuestions = async (req, res) => {
   try {
-    const { questions } = req.body;
+    const { title, duration, questions } = req.body;
 
+    // Validate required fields
     if (!questions || !Array.isArray(questions)) {
       return res.status(400).json({
         error: "Missing required fields: questions array is required",
@@ -40,37 +41,59 @@ exports.saveQuestions = async (req, res) => {
 
     // Validate each question
     const validationErrors = [];
-    const validQuestions = questions.map((q, index) => {
-      if (!q.questionText || !q.correctAnswer) {
-        validationErrors.push(`Question ${index + 1} missing required fields`);
-        return null;
-      }
-
-      // Validate options
-      const validOptions = {};
-      ["A", "B", "C", "D", "E"].forEach((opt) => {
-        if (!q.options[opt]?.text) {
-          validationErrors.push(`Question ${index + 1} missing option ${opt}`);
+    const validQuestions = questions
+      .map((q, index) => {
+        // Basic validation
+        if (!q.questionText) {
+          validationErrors.push(
+            `Question ${index + 1} is missing question text`
+          );
+          return null;
         }
-        validOptions[opt] = {
-          text: q.options[opt]?.text || "",
-          image: q.options[opt]?.image || null,
-        };
-      });
 
-      return {
-        questionNumber: q.questionNumber || `Q${index + 1}`,
-        questionText: q.questionText,
-        questionImage: q.questionImage || null,
-        options: validOptions,
-        correctAnswer: q.correctAnswer,
-        difficulty: q.difficulty || "Medium",
-        explanation: q.explanation || "",
-        marks: q.marks || 1,
-        negativeMarks: q.negativeMarks || 0.25,
-        hasImages: q.hasImages || false,
-      };
-    });
+        if (
+          !q.correctAnswer ||
+          !["A", "B", "C", "D", "E"].includes(q.correctAnswer)
+        ) {
+          validationErrors.push(
+            `Question ${index + 1} has invalid or missing correct answer`
+          );
+          return null;
+        }
+
+        // Process options
+        const validOptions = {};
+        ["A", "B", "C", "D", "E"].forEach((opt) => {
+          validOptions[opt] = {
+            text: q.options?.[opt]?.text || "",
+            image: q.options?.[opt]?.image || null,
+          };
+
+          // Option validation
+          if (!validOptions[opt].text) {
+            validationErrors.push(
+              `Question ${index + 1} option ${opt} is empty`
+            );
+          }
+        });
+
+        return {
+          questionNumber: q.questionNumber || `Q${index + 1}`,
+          questionText: q.questionText,
+          questionImage: q.questionImage || null,
+          options: validOptions,
+          correctAnswer: q.correctAnswer,
+          difficulty: q.difficulty || "Medium",
+          explanation: q.explanation || "",
+          marks: Number(q.marks) || 1,
+          negativeMarks: Number(q.negativeMarks) || 0.25,
+          hasImages: Boolean(
+            q.questionImage ||
+              Object.values(q.options || {}).some((opt) => opt?.image)
+          ),
+        };
+      })
+      .filter((q) => q !== null);
 
     if (validationErrors.length > 0) {
       return res.status(400).json({
@@ -79,21 +102,27 @@ exports.saveQuestions = async (req, res) => {
       });
     }
 
-    // Save all questions
-    const savedQuestions = await Question.insertMany(
-      validQuestions.filter((q) => q !== null)
-    );
+    // Create the question paper
+    const questionPaper = new QuestionPaper({
+      title:
+        title || `Question Paper ${new Date().toISOString().split("T")[0]}`,
+      duration: Number(duration) || 60,
+      questions: validQuestions,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
-    res.json({
+    const savedPaper = await questionPaper.save();
+
+    res.status(201).json({
       success: true,
-      message: `${savedQuestions.length} questions saved successfully`,
-      savedCount: savedQuestions.length,
-      questions: savedQuestions,
+      message: `Question paper "${savedPaper.title}" saved successfully with ${savedPaper.questions.length} questions`,
+      questionPaper: savedPaper,
     });
   } catch (error) {
     console.error("Error saving questions:", error);
     res.status(500).json({
-      error: "Error saving questions",
+      error: "Internal server error",
       details: error.message,
     });
   }

@@ -1,3 +1,4 @@
+// models/questionPaper.js
 const mongoose = require("mongoose");
 
 const optionSchema = new mongoose.Schema({
@@ -24,4 +25,20 @@ const questionSchema = new mongoose.Schema({
   hasImages: Boolean,
 });
 
-module.exports = mongoose.model("Question", questionSchema);
+const questionPaperSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+  },
+  duration: {
+    type: Number, // in minutes
+    required: true,
+  },
+  questions: [questionSchema],
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+module.exports = mongoose.model("QuestionPaper", questionPaperSchema);
