@@ -1,19 +1,21 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
-const mongoose = require('mongoose');
-const adminRoutes = require('./routes/adminRoute');
-const userRoutes = require('./routes/userRoute');
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const mongoose = require("mongoose");
+const adminRoutes = require("./routes/adminRoute");
+const userRoutes = require("./routes/userRoute");
 
 const app = express();
 
-// app.use(cors({
-//   origin: process.env.CLIENT_URL,
-//   credentials: true
-// }));
+app.use(
+  cors({
+    origin: "http://localhost:5173", // ✅ Fix: no slash
+    credentials: true,
+  })
+);
 
-app.use(cors());
+// app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
@@ -23,17 +25,18 @@ app.use((req, res, next) => {
   next();
 });
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // Basic test route, should not be protected
-app.get('/', (req, res) => {
-  res.json({ message: 'API is working' });
+app.get("/", (req, res) => {
+  res.json({ message: "API is working" });
 });
 
-app.use('/api/admin', adminRoutes);
-app.use('/api/user', userRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/user", userRoutes);
 
 const PORT = process.env.PORT || 7000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
