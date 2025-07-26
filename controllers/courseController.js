@@ -14,12 +14,34 @@ exports.createCourse = async (req, res) => {
 // Get all courses
 exports.getAllCourses = async (req, res) => {
     try {
-      const courses = await Course.find().populate("questionPapers", "title duration");
-      res.json(courses);
+      // Extract page and limit from query params, with defaults
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+  
+      // Calculate how many documents to skip
+      const skip = (page - 1) * limit;
+  
+      // Get total number of courses
+      const total = await Course.countDocuments();
+  
+      // Fetch paginated results
+      const courses = await Course.find()
+        .skip(skip)
+        .limit(limit)
+        .populate("questionPapers", "title duration")
+        .sort({ createdAt: -1 }); // Optional: newest first
+  
+      res.json({
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalCourses: total,
+        courses,
+      });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
-  };  
+  };
+   
 
 // Get a single course by ID
 exports.getCourseById = async (req, res) => {
