@@ -3,7 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
-const authRoutes = require('./routes/authRoute');
+const adminRoutes = require('./routes/adminRoute');
+const userRoutes = require('./routes/userRoute');
 
 const app = express();
 
@@ -31,7 +32,8 @@ app.get('/', (req, res) => {
   res.json({ message: 'API is working' });
 });
 
-app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/user', userRoutes);
 
 const PORT = process.env.PORT || 7000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
