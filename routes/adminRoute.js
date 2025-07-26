@@ -7,6 +7,7 @@ const {
   saveQuestions,
 } = require("../controllers/questionPaperController");
 const { handleUpload } = require("../middleware/uploadMiddleware");
+const courseController = require("../controllers/courseController");
 
 adminrouter.post("/login", login);
 adminrouter.post(
@@ -15,5 +16,11 @@ adminrouter.post(
   uploadAndParseQuestions
 );
 adminrouter.post("/save-questions", saveQuestions);
+
+adminrouter.post("/courses", courseController.createCourse);
+adminrouter.get("/courses", courseController.getAllCourses);
+adminrouter.get("/courses/:id", courseController.getCourseById);
+adminrouter.put("/courses/:id", courseController.updateCourse);
+adminrouter.delete("/courses/:id", courseController.deleteCourse);
 
 module.exports = adminrouter;
