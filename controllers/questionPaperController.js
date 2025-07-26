@@ -127,3 +127,70 @@ exports.saveQuestions = async (req, res) => {
     });
   }
 };
+
+exports.getQuestionPaper = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const questionPaper = await QuestionPaper.findById(id);
+
+    if (!questionPaper) {
+      return res.status(404).json({ message: "Question paper not found" });
+    }
+
+    res.status(200).json(questionPaper);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+exports.getAllQuestionPapers = async (req, res) => {
+  try {
+    const questionPapers = await QuestionPaper.find().sort({ createdAt: -1 });
+    res.status(200).json(questionPapers);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+exports.updateQuestionPaper = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, duration, questions } = req.body;
+
+    const updateData = {};
+    if (title) updateData.title = title;
+    if (duration) updateData.duration = duration;
+    if (questions) updateData.questions = questions;
+
+    const updatedPaper = await QuestionPaper.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!updatedPaper) {
+      return res.status(404).json({ message: "Question paper not found" });
+    }
+
+    res.status(200).json(updatedPaper);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+exports.deleteQuestionPaper = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedPaper = await QuestionPaper.findByIdAndDelete(id);
+
+    if (!deletedPaper) {
+      return res.status(404).json({ message: "Question paper not found" });
+    }
+
+    res.status(200).json({
+      message: "Question paper deleted successfully",
+      deletedPaper,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
