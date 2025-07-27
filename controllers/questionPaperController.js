@@ -1,6 +1,8 @@
 // controllers/questionPaperController.js
 const questionPaperHelper = require("../helper/questionPaperHelper");
 const QuestionPaper = require("../models/questionPaper");
+const fs = require("fs");
+const path = require("path");
 
 exports.uploadAndParseQuestions = async (req, res) => {
   try {
@@ -8,8 +10,16 @@ exports.uploadAndParseQuestions = async (req, res) => {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
+    // If using disk storage, read the file
+    const filePath = path.join(
+      __dirname,
+      "../uploads/question-papers/",
+      req.file.filename
+    );
+    const fileBuffer = await fs.promises.readFile(filePath);
+
     const questions = await questionPaperHelper.processQuestionPaper(
-      req.file.buffer,
+      fileBuffer,
       req.file.originalname,
       req.file.mimetype
     );

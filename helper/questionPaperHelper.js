@@ -20,7 +20,8 @@ class QuestionPaperHelper {
   async extractTextFromFile(fileBuffer, mimeType) {
     try {
       if (mimeType === "application/pdf") {
-        const data = await pdf(fileBuffer);
+        // Ensure we're passing the buffer correctly
+        const data = await pdf(Buffer.from(fileBuffer));
         return data.text;
       } else if (
         mimeType.includes("msword") ||
