@@ -10,7 +10,10 @@ const {
   updateQuestionPaper,
   deleteQuestionPaper,
 } = require("../controllers/questionPaperController");
-const { handleUpload } = require("../middleware/uploadMiddleware");
+const {
+  handleUpload,
+  handleImageUpload,
+} = require("../middleware/uploadMiddleware");
 const courseController = require("../controllers/courseController");
 
 adminrouter.get("/question-papers", getAllQuestionPapers);
@@ -24,15 +27,22 @@ adminrouter.post(
 );
 adminrouter.post("/save-questions", saveQuestions);
 
-adminrouter.post("/courses", courseController.createCourse);
+adminrouter.post(
+  "/courses",
+  handleImageUpload("image"),
+  courseController.createCourse
+);
 adminrouter.get("/courses", courseController.getAllCourses);
 adminrouter.get("/courses/:id", courseController.getCourseById);
-adminrouter.put("/courses/:id", courseController.updateCourse);
+adminrouter.put(
+  "/courses/:id",
+  handleImageUpload("image"),
+  courseController.updateCourse
+);
 adminrouter.delete("/courses/:id", courseController.deleteCourse);
 
 adminrouter.put("/update-question-paper/:id", updateQuestionPaper);
 
 adminrouter.put("/delete-question-paper/:id", deleteQuestionPaper);
-
 
 module.exports = adminrouter;
