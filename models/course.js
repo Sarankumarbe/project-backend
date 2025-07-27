@@ -11,6 +11,10 @@ const courseSchema = new mongoose.Schema({
       ref: "QuestionPaper",
     },
   ],
+  is_active: {
+    type: Boolean,
+    default: true, // active by default
+  },
   createdAt: {
     type: Date,
     default: Date.now,

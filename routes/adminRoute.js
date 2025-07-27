@@ -15,6 +15,8 @@ const {
   handleImageUpload,
 } = require("../middleware/uploadMiddleware");
 const courseController = require("../controllers/courseController");
+const { protect, adminOnly } = require("../middleware/authMiddleware");
+
 
 adminrouter.get("/question-papers", getAllQuestionPapers);
 adminrouter.get("/question-paper/:id", getQuestionPaper);
@@ -29,17 +31,41 @@ adminrouter.post("/save-questions", saveQuestions);
 
 adminrouter.post(
   "/courses",
+  protect,
+  adminOnly,
   handleImageUpload("image"),
   courseController.createCourse
 );
-adminrouter.get("/courses", courseController.getAllCourses);
-adminrouter.get("/courses/:id", courseController.getCourseById);
+
+adminrouter.get(
+  "/courses",
+  protect,
+  adminOnly,
+  courseController.getAllCourses
+);
+
+adminrouter.get(
+  "/courses/:id",
+  protect,
+  adminOnly,
+  courseController.getCourseById
+);
+
 adminrouter.put(
   "/courses/:id",
+  protect,
+  adminOnly,
   handleImageUpload("image"),
   courseController.updateCourse
 );
-adminrouter.delete("/courses/:id", courseController.deleteCourse);
+
+adminrouter.delete(
+  "/courses/:id",
+  protect,
+  adminOnly,
+  courseController.deleteCourse
+);
+
 
 adminrouter.put("/update-question-paper/:id", updateQuestionPaper);
 
