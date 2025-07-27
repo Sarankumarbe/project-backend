@@ -1,5 +1,6 @@
 const Course = require("../models/course");
 const QuestionPaper = require("../models/questionPaper");
+const Purchase = require("../models/Purchase");
 
 exports.createCourse = async (req, res) => {
   try {
@@ -101,7 +102,7 @@ exports.getCourseById = async (req, res) => {
 // Update a course
 exports.updateCourse = async (req, res) => {
   try {
-    const { title, description, price, questionPapers, existingImage } =
+    const { title, description, price, questionPapers, existingImage, is_active } =
       req.body;
     const courseId = req.params.id;
 
@@ -158,6 +159,7 @@ exports.updateCourse = async (req, res) => {
         price,
         questionPapers: questionPapersArray,
         image,
+        is_active: is_active !== undefined ? is_active : existingCourse.is_active,
       },
       { new: true }
     );
@@ -185,4 +187,10 @@ exports.deleteCourse = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+};
+exports.getUserCourses = async (req, res) => {
+  const purchases = await Purchase.find({ userId: req.user._id, isPaid: true })
+                                  .populate("courseId");
+  const courses = purchases.map(p => p.courseId);
+  res.json({ courses });
 };
