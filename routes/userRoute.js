@@ -4,6 +4,7 @@ const userrouter = express.Router();
 const { signup, login } = require('../controllers/authController');
 const courseController = require("../controllers/courseController");
 const paymentController = require("../controllers/paymentController");
+const cartController = require("../controllers/cartController");
 const { protect } = require("../middleware/authMiddleware");
 const {
   submitAnswers,
@@ -38,4 +39,7 @@ userrouter.post("/create-order", protect, paymentController.createOrder);
 userrouter.post("/verify", protect, paymentController.verifyPayment);
 userrouter.get("/my-courses", protect, courseController.getUserCourses);
 
+userrouter.get('/cart/:userId', protect, cartController.getCartItems);
+userrouter.post('/cart/add', protect, cartController.addToCart);
+userrouter.delete('/cart/remove', protect, cartController.removeFromCart);
 module.exports = userrouter;
