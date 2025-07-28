@@ -213,7 +213,7 @@ exports.getUserCourses = async (req, res) => {
       isPaid: true,
     }).populate({
       path: "courseId",
-      match: { is_active: true }, // Note: Your schema uses is_active not isActive
+
       select: "title description image price questionPapers", // Only select needed fields
     });
 
