@@ -8,17 +8,27 @@ exports.submitAnswers = async (req, res) => {
 
   try {
     // Check if already submitted
-    const existing = await UserSubmission.findOne({ user: userId, questionPaper: questionPaperId, isSubmitted: true });
-    if (existing) return res.status(400).json({ message: "Already submitted this question paper." });
+    const existing = await UserSubmission.findOne({
+      user: userId,
+      questionPaper: questionPaperId,
+      isSubmitted: true,
+    });
+    if (existing)
+      return res
+        .status(400)
+        .json({ message: "Already submitted this question paper." });
 
     const paper = await QuestionPaper.findById(questionPaperId);
-    if (!paper) return res.status(404).json({ message: "Question paper not found." });
+    if (!paper)
+      return res.status(404).json({ message: "Question paper not found." });
 
     let totalMarks = 0;
     const processedAnswers = [];
 
     for (const submitted of answers) {
-      const question = paper.questions.find(q => q.questionNumber === submitted.questionNumber);
+      const question = paper.questions.find(
+        (q) => q.questionNumber === submitted.questionNumber
+      );
       if (!question) continue;
 
       const isCorrect = submitted.selectedAnswer === question.correctAnswer;
@@ -44,28 +54,34 @@ exports.submitAnswers = async (req, res) => {
     });
 
     await submission.save();
-    res.status(200).json({ message: "Submission successful", totalMarks, answers: processedAnswers });
-
+    res
+      .status(200)
+      .json({
+        message: "Submission successful",
+        totalMarks,
+        answers: processedAnswers,
+      });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error during submission" });
   }
 };
 exports.getSubmission = async (req, res) => {
-    const userId = req.user.id;
-    const { questionPaperId } = req.params;
-  
-    try {
-      const submission = await UserSubmission.findOne({
-        user: userId,
-        questionPaper: questionPaperId,
-        isSubmitted: true,
-      });
-  
-      if (!submission) return res.status(404).json({ message: "No submission found" });
-  
-      res.status(200).json(submission);
-    } catch (err) {
-      res.status(500).json({ message: "Error retrieving submission" });
-    }
-  };
+  const userId = req.user.id;
+  const { questionPaperId } = req.params;
+
+  try {
+    const submission = await UserSubmission.findOne({
+      user: userId,
+      questionPaper: questionPaperId,
+      isSubmitted: true,
+    });
+
+    if (!submission)
+      return res.status(404).json({ message: "No submission found" });
+
+    res.status(200).json(submission);
+  } catch (err) {
+    res.status(500).json({ message: "Error retrieving submission" });
+  }
+};

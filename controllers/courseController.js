@@ -1,6 +1,7 @@
 const Course = require("../models/course");
 const QuestionPaper = require("../models/questionPaper");
 const Purchase = require("../models/Purchase");
+const mongoose = require("mongoose");
 
 exports.createCourse = async (req, res) => {
   try {
@@ -102,8 +103,14 @@ exports.getCourseById = async (req, res) => {
 // Update a course
 exports.updateCourse = async (req, res) => {
   try {
-    const { title, description, price, questionPapers, existingImage, is_active } =
-      req.body;
+    const {
+      title,
+      description,
+      price,
+      questionPapers,
+      existingImage,
+      is_active,
+    } = req.body;
     const courseId = req.params.id;
 
     // Find the existing course
@@ -159,7 +166,8 @@ exports.updateCourse = async (req, res) => {
         price,
         questionPapers: questionPapersArray,
         image,
-        is_active: is_active !== undefined ? is_active : existingCourse.is_active,
+        is_active:
+          is_active !== undefined ? is_active : existingCourse.is_active,
       },
       { new: true }
     );
@@ -188,9 +196,107 @@ exports.deleteCourse = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 exports.getUserCourses = async (req, res) => {
-  const purchases = await Purchase.find({ userId: req.user._id, isPaid: true })
-                                  .populate("courseId");
-  const courses = purchases.map(p => p.courseId);
-  res.json({ courses });
+  try {
+    const userId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid User ID format",
+      });
+    }
+
+    const purchases = await Purchase.find({
+      userId: userId,
+      isPaid: true,
+    }).populate({
+      path: "courseId",
+      match: { is_active: true }, // Note: Your schema uses is_active not isActive
+      select: "title description image price questionPapers", // Only select needed fields
+    });
+
+    // Filter out purchases where course was not populated (either deleted or inactive)
+    const validPurchases = purchases.filter((purchase) => purchase.courseId);
+
+    // Transform the data for response
+    const courses = validPurchases.map((purchase) => ({
+      ...purchase.courseId.toObject(), // Convert Mongoose document to plain object
+      purchaseDate: purchase.paidAt || purchase.createdAt, // Use paidAt if available
+      orderId: purchase.razorpayOrderId, // Include order reference
+    }));
+
+    res.json({
+      success: true,
+      count: courses.length,
+      courses,
+    });
+  } catch (error) {
+    console.error("[ERROR] in getUserCourses:", error);
+    res.status(500).json({
+      success: false,
+      error: "Server error while fetching purchased courses",
+    });
+  }
+};
+
+exports.getCourseDetails = async (req, res) => {
+  try {
+    const { id: courseId } = req.params;
+    const { userId } = req.body;
+
+    // Validate IDs
+    if (
+      !mongoose.Types.ObjectId.isValid(courseId) ||
+      !mongoose.Types.ObjectId.isValid(userId)
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid ID format",
+      });
+    }
+
+    // Check if user purchased this course
+    const purchase = await Purchase.findOne({
+      userId,
+      courseId,
+      isPaid: true,
+    });
+
+    if (!purchase) {
+      return res.status(403).json({
+        success: false,
+        error: "You haven't purchased this course",
+      });
+    }
+
+    // Get course details with question papers
+    const course = await Course.findOne({
+      _id: courseId,
+      is_active: true,
+    }).populate("questionPapers");
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        error: "Course not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      course: {
+        ...course.toObject(),
+        purchaseDate: purchase.paidAt || purchase.createdAt,
+        orderId: purchase.razorpayOrderId,
+      },
+    });
+  } catch (error) {
+    console.error("[ERROR] in getCourseDetails:", error);
+    res.status(500).json({
+      success: false,
+      error: "Server error while fetching course details",
+    });
+  }
 };

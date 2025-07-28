@@ -17,7 +17,6 @@ const {
 const courseController = require("../controllers/courseController");
 const { protect, adminOnly } = require("../middleware/authMiddleware");
 
-
 adminrouter.get("/question-papers", getAllQuestionPapers);
 adminrouter.get("/question-paper/:id", getQuestionPaper);
 
@@ -37,12 +36,7 @@ adminrouter.post(
   courseController.createCourse
 );
 
-adminrouter.get(
-  "/courses",
-  protect,
-  adminOnly,
-  courseController.getAllCourses
-);
+adminrouter.get("/courses", protect, adminOnly, courseController.getAllCourses);
 
 adminrouter.get(
   "/courses/:id",
@@ -66,9 +60,8 @@ adminrouter.delete(
   courseController.deleteCourse
 );
 
-
 adminrouter.put("/update-question-paper/:id", updateQuestionPaper);
 
-adminrouter.put("/delete-question-paper/:id", deleteQuestionPaper);
+adminrouter.delete("/delete-question-paper/:id", deleteQuestionPaper);
 
 module.exports = adminrouter;

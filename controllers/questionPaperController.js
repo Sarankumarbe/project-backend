@@ -3,6 +3,8 @@ const questionPaperHelper = require("../helper/questionPaperHelper");
 const QuestionPaper = require("../models/questionPaper");
 const fs = require("fs");
 const path = require("path");
+const Purchase = require("../models/Purchase");
+const mongoose = require("mongoose");
 
 exports.uploadAndParseQuestions = async (req, res) => {
   try {
@@ -202,5 +204,90 @@ exports.deleteQuestionPaper = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+exports.getQuestionPaperforPurchasedUser = async (req, res) => {
+  try {
+    const { questionPaperId } = req.params;
+    const { userId } = req.body;
+
+    console.log("Received IDs:", { questionPaperId, userId }); // Add this for debugging
+
+    // Validate IDs
+    if (
+      !mongoose.Types.ObjectId.isValid(questionPaperId) ||
+      !mongoose.Types.ObjectId.isValid(userId)
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid ID format",
+      });
+    }
+
+    // Check if user has access to this question paper
+    const purchase = await Purchase.findOne({
+      userId,
+      courseId: { $exists: true }, // Ensure they've purchased a course
+      isPaid: true,
+    }).populate({
+      path: "courseId",
+      match: {
+        questionPapers: questionPaperId,
+        is_active: true,
+      },
+    });
+
+    if (!purchase || !purchase.courseId) {
+      return res.status(403).json({
+        success: false,
+        error: "You don't have access to this question paper",
+      });
+    }
+
+    // Get question paper with questions
+    const questionPaper = await QuestionPaper.findById(questionPaperId)
+      .select("title duration questions createdAt")
+      .lean();
+
+    if (!questionPaper) {
+      return res.status(404).json({
+        success: false,
+        error: "Question paper not found",
+      });
+    }
+
+    // Format the response
+    const formattedQuestions = questionPaper.questions.map((q) => ({
+      id: q._id,
+      text: q.questionText,
+      questionNumber: q.questionNumber,
+      options: Object.entries(q.options).map(([key, value]) => ({
+        id: key,
+        text: value.text,
+      })),
+      correctAnswer: q.correctAnswer,
+      marks: q.marks,
+      negativeMarks: q.negativeMarks,
+      difficulty: q.difficulty,
+    }));
+
+    res.json({
+      success: true,
+      questionPaper: {
+        ...questionPaper,
+        questions: formattedQuestions,
+        totalMarks: questionPaper.questions.reduce(
+          (sum, q) => sum + q.marks,
+          0
+        ),
+      },
+    });
+  } catch (error) {
+    console.error("[ERROR] in getQuestionPaper:", error);
+    res.status(500).json({
+      success: false,
+      error: "Server error while fetching question paper",
+    });
   }
 };
