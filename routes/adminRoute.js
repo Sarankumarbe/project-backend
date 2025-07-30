@@ -20,6 +20,9 @@ const {
   getAllPayments,
   getPaymentStats,
 } = require("../controllers/paymentController");
+const userController = require('../controllers/userController');
+const couponController = require("../controllers/couponController");
+
 
 adminrouter.get("/question-papers", getAllQuestionPapers);
 adminrouter.get("/question-paper/:id", getQuestionPaper);
@@ -69,5 +72,19 @@ adminrouter.delete(
 adminrouter.put("/update-question-paper/:id", updateQuestionPaper);
 
 adminrouter.delete("/delete-question-paper/:id", deleteQuestionPaper);
+
+adminrouter.get('/manage', protect, adminOnly, userController.getAllUsers);
+adminrouter.get('/manage/:id', protect, adminOnly, userController.getUserById);
+adminrouter.put('/manage/:id', protect, adminOnly, userController.updateUser);
+adminrouter.delete('/manage/:id', protect, adminOnly, userController.deleteUser);
+
+adminrouter.post('/manage/reset-password', protect, adminOnly, userController.resetPassword);
+adminrouter.patch('/manage/:id/status', protect, adminOnly, userController.toggleStatus);
+
+adminrouter.post("/coupon", protect, adminOnly, couponController.createCoupon);
+adminrouter.get("/coupon", couponController.getAllCoupons);
+adminrouter.get("/coupon/:code", couponController.getCouponByCode); // public use
+adminrouter.put("/coupon/:id", protect, adminOnly, couponController.updateCoupon);
+adminrouter.delete("/coupon/:id", protect, adminOnly, couponController.deleteCoupon);
 
 module.exports = adminrouter;

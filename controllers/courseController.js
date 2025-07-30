@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 
 exports.createCourse = async (req, res) => {
   try {
-    const { title, description, price, questionPapers } = req.body;
+    const { title, description, price, questionPapers, isCommon = false, coursePack, } = req.body;
 
     const image = req.file ? req.file.path : null;
 
@@ -38,6 +38,8 @@ exports.createCourse = async (req, res) => {
       price,
       questionPapers: questionPapersArray,
       image,
+      isCommon,
+      coursePack,
     });
 
     const savedCourse = await course.save();
@@ -110,6 +112,8 @@ exports.updateCourse = async (req, res) => {
       questionPapers,
       existingImage,
       is_active,
+      isCommon,
+      coursePack,
     } = req.body;
     const courseId = req.params.id;
 
@@ -168,6 +172,9 @@ exports.updateCourse = async (req, res) => {
         image,
         is_active:
           is_active !== undefined ? is_active : existingCourse.is_active,
+        isCommon:
+          isCommon !== undefined ? isCommon : existingCourse.isCommon,
+        coursePack: coursePack || existingCourse.coursePack,
       },
       { new: true }
     );
