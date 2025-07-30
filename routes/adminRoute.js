@@ -16,6 +16,10 @@ const {
 } = require("../middleware/uploadMiddleware");
 const courseController = require("../controllers/courseController");
 const { protect, adminOnly } = require("../middleware/authMiddleware");
+const {
+  getAllPayments,
+  getPaymentStats,
+} = require("../controllers/paymentController");
 
 adminrouter.get("/question-papers", getAllQuestionPapers);
 adminrouter.get("/question-paper/:id", getQuestionPaper);
@@ -37,6 +41,8 @@ adminrouter.post(
 );
 
 adminrouter.get("/courses", protect, adminOnly, courseController.getAllCourses);
+adminrouter.get("/payments", protect, adminOnly, getAllPayments);
+adminrouter.get("/payments/stats", protect, adminOnly, getPaymentStats);
 
 adminrouter.get(
   "/courses/:id",

@@ -139,3 +139,170 @@ exports.verifyPayment = async (req, res) => {
     });
   }
 };
+
+exports.getAllPayments = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+      status = "",
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = req.query;
+
+    const pageNumber = parseInt(page);
+    const limitNumber = parseInt(limit);
+    const skip = (pageNumber - 1) * limitNumber;
+
+    // Build search query
+    let searchQuery = {};
+
+    // If search term is provided, search in user email/name and course title
+    if (search) {
+      searchQuery.$or = [
+        { "user.email": { $regex: search, $options: "i" } },
+        { "user.firstName": { $regex: search, $options: "i" } },
+        { "user.lastName": { $regex: search, $options: "i" } },
+        { "course.title": { $regex: search, $options: "i" } },
+        { razorpayOrderId: { $regex: search, $options: "i" } },
+        { razorpayPaymentId: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Filter by payment status
+    if (status) {
+      if (status === "paid") {
+        searchQuery.isPaid = true;
+      } else if (status === "pending") {
+        searchQuery.isPaid = false;
+      }
+    }
+
+    // Build sort object
+    const sortObj = {};
+    sortObj[sortBy] = sortOrder === "asc" ? 1 : -1;
+
+    // Get payments with populated user and course data
+    const payments = await Purchase.find(searchQuery)
+      .populate({
+        path: "userId",
+        select: "firstName lastName email phone",
+        model: "User",
+      })
+      .populate({
+        path: "courseId",
+        select: "title price thumbnail",
+        model: "Course",
+      })
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limitNumber);
+
+    // Get total count for pagination
+    const totalPayments = await Purchase.countDocuments(searchQuery);
+    const totalPages = Math.ceil(totalPayments / limitNumber);
+
+    // Calculate pagination info
+    const hasNextPage = pageNumber < totalPages;
+    const hasPrevPage = pageNumber > 1;
+
+    // Format the response data
+    const formattedPayments = payments.map((payment) => ({
+      _id: payment._id,
+      user: payment.userId
+        ? {
+            firstName: payment.userId.firstName,
+            lastName: payment.userId.lastName,
+
+            email: payment.userId.email,
+            phone: payment.userId.phone,
+          }
+        : null,
+      course: payment.courseId
+        ? {
+            title: payment.courseId.title,
+            price: payment.courseId.price,
+            thumbnail: payment.courseId.thumbnail,
+          }
+        : null,
+      razorpayOrderId: payment.razorpayOrderId,
+      razorpayPaymentId: payment.razorpayPaymentId,
+      razorpaySignature: payment.razorpaySignature,
+      isPaid: payment.isPaid,
+      paidAt: payment.paidAt,
+      createdAt: payment.createdAt,
+      updatedAt: payment.updatedAt,
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        payments: formattedPayments,
+        pagination: {
+          currentPage: pageNumber,
+          totalPages,
+          totalPayments,
+          hasNextPage,
+          hasPrevPage,
+          limit: limitNumber,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching payments",
+      error: error.message,
+    });
+  }
+};
+
+exports.getPaymentStats = async (req, res) => {
+  try {
+    const totalPayments = await Purchase.countDocuments();
+    const paidPayments = await Purchase.countDocuments({ isPaid: true });
+    const pendingPayments = await Purchase.countDocuments({ isPaid: false });
+
+    // Calculate total revenue
+    const revenueData = await Purchase.aggregate([
+      { $match: { isPaid: true } },
+      {
+        $lookup: {
+          from: "courses",
+          localField: "courseId",
+          foreignField: "_id",
+          as: "course",
+        },
+      },
+      { $unwind: "$course" },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$course.price" },
+        },
+      },
+    ]);
+
+    const totalRevenue =
+      revenueData.length > 0 ? revenueData[0].totalRevenue : 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalPayments,
+        paidPayments,
+        pendingPayments,
+        totalRevenue,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching payment stats:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching payment statistics",
+      error: error.message,
+    });
+  }
+};
