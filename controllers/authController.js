@@ -18,21 +18,30 @@ const cookieOptions = {
 
 exports.signup = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, role } = req.body;
-    console.log("Signup request body:", req.body); // log incoming data
+    const { firstName, lastName, email, phone, password, role } = req.body;
+
+    if (!email && !phone) {
+      return res.status(400).json({ message: "Email or phone is required" });
+    }
+
+    // Check if user exists by email or phone
+    const existingUser = await User.findOne({
+      $or: [{ email }, { phone }],
+    });
+
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ message: "Email or phone number already exists" });
+    }
 
     const userRole = role === "admin" ? "admin" : "user";
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      console.log("Email already registered:", email);
-      return res.status(400).json({ message: "Email already exists" });
-    }
 
     const user = new User({
       firstName,
       lastName,
       email,
+      phone,
       password,
       role: userRole,
     });
@@ -48,6 +57,7 @@ exports.signup = async (req, res) => {
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
+          phone: user.phone,
           role: user.role,
           status: user.status,
         },
@@ -59,11 +69,19 @@ exports.signup = async (req, res) => {
 };
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { identifier, password } = req.body; // identifier can be email or phone
 
-    const user = await User.findOne({ email });
-    if (!user)
-      return res.status(401).json({ message: "Invalid email or password" });
+    if (!identifier || !password) {
+      return res.status(400).json({ message: "Identifier and password required" });
+    }
+
+    const user = await User.findOne({
+      $or: [{ email: identifier }, { phone: identifier }],
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email/phone or password" });
+    }
 
     if (req.baseUrl.includes("/admin") && user.role !== "admin") {
       return res
@@ -96,6 +114,7 @@ exports.login = async (req, res) => {
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
+          phone: user.phone,
           role: user.role,
           status: user.status,
         },

@@ -11,6 +11,15 @@ const courseSchema = new mongoose.Schema({
       ref: "QuestionPaper",
     },
   ],
+  isCommon: {
+    type: Boolean,
+    default: false,
+  },
+  coursePack: {
+    type: String,
+    enum: ["gold", "silver", "basic"],
+    required: true,
+  },
   is_active: {
     type: Boolean,
     default: true, // active by default
