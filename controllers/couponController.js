@@ -28,8 +28,29 @@ exports.createCoupon = async (req, res) => {
 // Get all
 exports.getAllCoupons = async (req, res) => {
   try {
-    const coupons = await Coupon.find().sort({ createdAt: -1 });
-    res.json(coupons);
+    const { search = "", page = 1, limit = 10 } = req.query;
+
+    const query = {
+      $or: [
+        { title: { $regex: search, $options: "i" } },
+        { code: { $regex: search, $options: "i" } },
+      ],
+    };
+
+    const skip = (page - 1) * limit;
+    const total = await Coupon.countDocuments(query);
+
+    const coupons = await Coupon.find(query)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 });
+
+    res.json({
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      totalCoupons: total,
+      coupons,
+    });
   } catch (error) {
     console.error("Get all coupons error:", error);
     res.status(500).json({ message: "Server error" });

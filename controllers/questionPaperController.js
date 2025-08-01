@@ -143,22 +143,61 @@ exports.saveQuestions = async (req, res) => {
 exports.getQuestionPaper = async (req, res) => {
   try {
     const { id } = req.params;
-    const questionPaper = await QuestionPaper.findById(id);
+    const page = parseInt(req.query.page) || 1;  // Default page 1
+    const limit = parseInt(req.query.limit) || 5; // Default limit 5
+    const skip = (page - 1) * limit;
+
+    const questionPaper = await QuestionPaper.findById(id).lean(); // Use lean for performance
 
     if (!questionPaper) {
       return res.status(404).json({ message: "Question paper not found" });
     }
 
-    res.status(200).json(questionPaper);
+    const totalQuestions = questionPaper.questions.length;
+    const totalPages = Math.ceil(totalQuestions / limit);
+
+    // Paginate the questions array
+    const paginatedQuestions = questionPaper.questions.slice(skip, skip + limit);
+
+    res.status(200).json({
+      _id: questionPaper._id,
+      title: questionPaper.title,
+      duration: questionPaper.duration,
+      questions: paginatedQuestions,
+      page,
+      limit,
+      totalQuestions,
+      totalPages,
+      createdAt: questionPaper.createdAt,
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
+
 exports.getAllQuestionPapers = async (req, res) => {
   try {
-    const questionPapers = await QuestionPaper.find().sort({ createdAt: -1 });
-    res.status(200).json(questionPapers);
+    const { search = "", page = 1, limit = 10 } = req.query;
+
+    const query = {
+      title: { $regex: search, $options: "i" },
+    };
+
+    const skip = (page - 1) * limit;
+    const total = await QuestionPaper.countDocuments(query);
+
+    const questionPapers = await QuestionPaper.find(query)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      totalQuestionPapers: total,
+      questionPapers,
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
