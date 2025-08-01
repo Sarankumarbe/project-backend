@@ -60,25 +60,23 @@ exports.createCourse = async (req, res) => {
 // Get all courses
 exports.getAllCourses = async (req, res) => {
   try {
-    // Extract page and limit from query params, with defaults
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const { search = "", page = 1, limit = 10 } = req.query;
 
-    // Calculate how many documents to skip
+    const query = {
+      title: { $regex: search, $options: "i" },
+    };
+
     const skip = (page - 1) * limit;
+    const total = await Course.countDocuments(query);
 
-    // Get total number of courses
-    const total = await Course.countDocuments();
-
-    // Fetch paginated results
-    const courses = await Course.find()
+    const courses = await Course.find(query)
       .skip(skip)
-      .limit(limit)
+      .limit(parseInt(limit))
       .populate("questionPapers", "title duration")
-      .sort({ createdAt: -1 }); // Optional: newest first
+      .sort({ createdAt: -1 });
 
     res.json({
-      currentPage: page,
+      currentPage: parseInt(page),
       totalPages: Math.ceil(total / limit),
       totalCourses: total,
       courses,
@@ -87,6 +85,7 @@ exports.getAllCourses = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // Get a single course by ID
 exports.getCourseById = async (req, res) => {

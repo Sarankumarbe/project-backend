@@ -2,8 +2,33 @@ const User = require('../models/User');
 
 // GET all users
 exports.getAllUsers = async (req, res) => {
-  const users = await User.find().select('-password');
-  res.json(users);
+  try {
+    const { search = "", page = 1, limit = 10 } = req.query;
+
+    const query = {
+      $or: [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ],
+    };
+
+    const skip = (page - 1) * limit;
+    const total = await User.countDocuments(query);
+    const users = await User.find(query)
+      .select("-password")
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 });
+
+    res.json({
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      totalUsers: total,
+      users,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
 
 // GET user by ID
